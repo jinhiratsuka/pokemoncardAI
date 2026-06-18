@@ -1,0 +1,137 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.ENV/
+.env/
+
+# Pytest
+.pytest_cache/
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+
+# Data files
+*.csv
+*.tsv
+*.parquet
+*.h5
+*.hdf5
+*.zip
+*.tar
+*.gz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+
+# Large data / model caches
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.ckpt
+*.hdf5
+
+# Kaggle and notebook outputs
+kaggle.json
+kaggle_credentials.json
+kaggle_*.json
+
+# Temporary files
+*.tmp
+*.temp
+*~
+
+# Jupyter Notebook metadata
+*.ipynb
+
+# Project-specific
+sample_submission/
+Pokemon.card.datasets/ # if any dataset directories exist
+
+# LFS placeholder files (if using git-lfs)
+*.gitattributes
