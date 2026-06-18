@@ -49,7 +49,7 @@ ipython_config.py
 # pipenv
 Pipfile.lock
 
-# coverage reports
+# Coverage reports
 htmlcov/
 .coverage
 .coverage.*
@@ -60,28 +60,36 @@ coverage.xml
 *.py,cover
 .hypothesis/
 
-# mypy
+# Mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
 
-# IDEs and editors
+# IDE/editor settings
 .vscode/
 .idea/
 *.sublime-workspace
 *.sublime-project
 
-# OS files
+# macOS files
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows files
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Logs and databases
 *.log
 *.sql
 *.sqlite
 *.sqlite3
+*.db
+*.db-journal
 
-# Data files
+# Heavy data / archive files
 *.csv
 *.tsv
 *.parquet
@@ -94,6 +102,9 @@ Thumbs.db
 *.xz
 *.7z
 *.rar
+*.xz
+
+# Documents / binary media
 *.pdf
 *.png
 *.jpg
@@ -106,8 +117,10 @@ Thumbs.db
 *.mkv
 *.avi
 *.webm
+*.mp3
+*.wav
 
-# Large data / model caches
+# Model / cache files
 *.pkl
 *.pickle
 *.joblib
@@ -116,7 +129,7 @@ Thumbs.db
 *.ckpt
 *.hdf5
 
-# Kaggle and notebook outputs
+# Kaggle configuration / credentials
 kaggle.json
 kaggle_credentials.json
 kaggle_*.json
@@ -126,12 +139,17 @@ kaggle_*.json
 *.temp
 *~
 
-# Jupyter Notebook metadata
+# Jupyter Notebook files
 *.ipynb
 
-# Project-specific
+# Sample / generated directories
 sample_submission/
-Pokemon.card.datasets/ # if any dataset directories exist
+__pycache__/
 
-# LFS placeholder files (if using git-lfs)
-*.gitattributes
+# Git LFS placeholder
+.gitattributes
+
+# Ignore large files that should not be tracked in this repo
+Card_ID List_EN.pdf
+Card_ID List_JP.pdf
+pokemon-tcg-ai-battle.zip
