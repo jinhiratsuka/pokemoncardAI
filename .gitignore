@@ -90,7 +90,9 @@ Desktop.ini
 *.db-journal
 
 # Heavy data / archive files
-*.csv
+# *.csv  # deck CSV files are tracked
+EN_Card_Data.csv
+JP_Card_Data.csv
 *.tsv
 *.parquet
 *.h5
