@@ -121,9 +121,9 @@ def agent(obs_dict: dict) -> list[int]:
         _pre_trn = state.turn
         _plan    = Plan()
 
-    hc = defaultdict(int)
-    fc = defaultdict(int)
-    dc = defaultdict(int)
+    hc = defaultdict(int)   # 手札カウント
+    fc = defaultdict(int)   # 自分の場カウント
+    dc = defaultdict(int)   # 捨て札カウント
     for c in me.hand:
         hc[c.id] += 1
     for c in (me.active + me.bench):
@@ -152,8 +152,8 @@ def agent(obs_dict: dict) -> list[int]:
 
             # (req, base_dmg): [(Jet Headbutt), (Phantom Dive)]
             for aidx, (req, bdmg) in enumerate([(1, 70), (1 if crystal else 2, 200)]):
-                avail  = ec
-                need_e = False
+                avail   = ec
+                need_e  = False
                 if ec < req:
                     has_e = (hc[Fire_E] + hc[Psychic_E]) > 0
                     if not state.energyAttached and has_e:
@@ -172,8 +172,8 @@ def agent(obs_dict: dict) -> list[int]:
                     if not opp: continue
                     if j > 0 and not can_op_sw: continue
 
-                    dmg = bdmg
-                    od  = card_tbl[opp.id]
+                    dmg  = bdmg
+                    od   = card_tbl[opp.id]
                     if od.weakness == EnergyType.DRAGON:
                         dmg *= 2
 
@@ -186,13 +186,13 @@ def agent(obs_dict: dict) -> list[int]:
                         s = s * dmg // max(opp.hp, 1)
 
                     s += (300 if i == 0 else 0) + (200 if j == 0 else 0)
-                    s += 500 if aidx == 1 else 0
+                    s += 500 if aidx == 1 else 0   # Phantom Dive優先
                     s += avail * 10
 
                     if s > best:
-                        best              = s
-                        _plan.attacker    = i
-                        _plan.target      = j
+                        best           = s
+                        _plan.attacker = i
+                        _plan.target   = j
                         _plan.attack_idx  = aidx
                         _plan.remain_hp   = opp.hp - bdmg
                         _plan.need_energy = need_e
@@ -242,7 +242,7 @@ def agent(obs_dict: dict) -> list[int]:
                           Fire_E: 30, Psychic_E: 30}.get(card.id, 10)
 
             elif ctx == SelectContext.DISCARD:
-                # 高スコア = 捨てやすい
+                # 高スコア = 捨てやすい（Ultra Ball等の2枚捨てで選ばれる）
                 if isinstance(card, Pokemon):
                     s = 0
                 elif card.id in (Spark_Crystal, Rare_Candy, Tera_Orb, Boss_Orders):
@@ -323,6 +323,7 @@ def agent(obs_dict: dict) -> list[int]:
             elif card.id == Air_Balloon:
                 s = 3000
             else:
+                # エネルギー付与先
                 if poke.id == Dragapult_ex:
                     s = 9000 - len(poke.energies) * 500
                     att = 0 if o.inPlayArea == AreaType.ACTIVE else 1 + o.inPlayIndex
