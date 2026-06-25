@@ -1144,7 +1144,16 @@ def to_hand_score(card_id: int, field_counts, hand_counts, has_telepath=False, h
         # 取得後すぐ使えるなら(hand_size >= 3)最優先でサーチ。
         return 480 if hand_size >= 3 else -50
     if card_id == Lillie_Determination:
-        return 380 if hand_size <= 3 else 90
+        # 取得後の手札 = hand_size + 1 → 6枚目標との差が引ける枚数
+        # hand_size=0→5枚引ける(超高優先) / hand_size=4→1枚(低優先) / hand_size>=5→0枚(取らない)
+        drawable_after = 6 - (hand_size + 1)  # my_prizeはここでは不明なので6固定
+        if drawable_after <= 0:
+            return -50  # 取得後すぐ使っても0枚: 低優先
+        if drawable_after >= 4:
+            return 370
+        if drawable_after >= 2:
+            return 280
+        return 150
     if card_id == Hop_Phantump:
         # ボクレーはデッキのエンジン＝テレパスの貼り先＋オーロットの進化元。常に最優先でサーチする。
         # （テレパスは「場のボクレーに貼って基本超2体を追加ベンチ」する手段なので、まずボクレーを
@@ -1210,10 +1219,25 @@ def play_trainer_score(card_id, my_state, op_state, my_prize, is_early_game,
     if card_id == Rocket_Petrel:
         return 3100  # 任意のトレーナーをサーチ（サポート）
     if card_id == Lillie_Determination:
-        draw_amt = 8 if my_prize == 6 else 6
-        if my_state.deckCount + len(my_state.hand) < draw_amt + 1:
-            return -1   # 山札切れ(n=0)防止
-        return 3200 if len(my_state.hand) <= 4 else 600
+        hand_size = len(my_state.hand)
+        draw_target = 8 if my_prize == 6 else 6
+        # 実際に引ける枚数 = min(目標 - 現在手札, 山札残り)
+        drawable = min(draw_target - hand_size, my_state.deckCount)
+        if drawable <= 0:
+            return -1   # 手札が上限以上 or 山札切れ: 使っても意味なし
+        # 終盤(残サイド≤2)は手牌が少なくてもボス・指令優先。リーリエで引いてもすぐ使いきれない。
+        if my_prize <= 2 and drawable <= 2:
+            return 900
+        # 引ける枚数が多いほど価値大
+        if drawable >= 5:
+            return 3800
+        if drawable >= 4:
+            return 3500
+        if drawable >= 3:
+            return 3200
+        if drawable >= 2:
+            return 2500
+        return 1200  # 1枚のみ: 他に使うサポートがなければ
     if card_id == Hassel:
         # 自分のポケモンが前のターンに気絶した時のみ使える。撃てるなら強ドロー
         return 3300 if len(my_state.hand) <= 5 else 500
