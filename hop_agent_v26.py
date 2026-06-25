@@ -1140,8 +1140,9 @@ def to_hand_score(card_id: int, field_counts, hand_counts, has_telepath=False, h
     # ただし使用には手札を3枚トラッシュする必要があり、手札が少ないと使えない。
     # 手札が少ない時は、次のターンの手札を増やすためリーリエの決意（引き直し）を最優先で持ってくる。
     if card_id == Secret_Box:
-        # サーチ後の手札=hand_size+1。3枚トラッシュして使うには手札が3枚以上必要。
-        return 400 if hand_size >= 3 else -50
+        # サーチ後の手札 = hand_size + 1。Secret Box使用には計4枚必要なので、
+        # 取得後すぐ使えるなら(hand_size >= 3)最優先でサーチ。
+        return 480 if hand_size >= 3 else -50
     if card_id == Lillie_Determination:
         return 380 if hand_size <= 3 else 90
     if card_id == Hop_Phantump:
@@ -1231,7 +1232,16 @@ def play_trainer_score(card_id, my_state, op_state, my_prize, is_early_game,
             return 2200   # REATREATと同条件: ベンチのオーロットを前に出す
         return 500
     if card_id == Secret_Box:
-        return 1500
+        # ACE SPEC: トレーナーズ4種を一括サーチ。手札3枚トラッシュが条件(手札4枚以上必要)。
+        # デッキに1枚しかなく強力なので、使えるなら即使いたい。
+        hand_size = len(my_state.hand) if my_state.hand else 0
+        if hand_size < 4:
+            return -1    # Box自身 + 3枚捨て = 4枚必要。使えない
+        if hand_size >= 6:
+            return 5500  # 手札豊富: 積極的に使う(Postwick/Switchより高優先)
+        if hand_size >= 5:
+            return 4500
+        return 3000      # hand_size == 4: ギリギリ使える
     if card_id == Postwick:
         # ホップの攻撃+30。自分のスタジアムが無ければ貼る
         if stadium_id == Postwick:
