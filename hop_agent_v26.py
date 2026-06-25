@@ -1029,13 +1029,21 @@ def _agent_impl(obs_dict: dict) -> list[int]:
                         and len(pokemon.energies) == 0:
                     score += 500
                 # ルール2: ミスト/テレパス超が両方手札にある時の選び分け。
-                #   ベンチ展開あり→ミストエネルギー、ベンチ展開なし→テレパス超エネルギー
+                #   付け先がボクレー → テレパス超優先（ボクレーに付けると「デッキからベーシック2体を
+                #     ベンチに出す」効果が使える。ボクレー自身がベーシックなので最もベンチ展開に繋がる）。
+                #   ボクレー以外でベンチ空き → テレパス超優先。ベンチ発展済み → ミスト優先。
                 if hand_counts[Mist_Energy] >= 1 and hand_counts[Telepath_Energy] >= 1:
-                    bench_developed = any(p is not None for p in my_state.bench)
-                    if bench_developed and card.id == Mist_Energy:
-                        score += 80
-                    elif (not bench_developed) and card.id == Telepath_Energy:
-                        score += 80
+                    bench_not_full = sum(1 for p in my_state.bench if p is not None) < my_state.benchMax
+                    if pokemon.id == Hop_Phantump:
+                        # ボクレーへのテレパスは最優先: ベンチに2体増やせる
+                        if card.id == Telepath_Energy:
+                            score += 150
+                        else:
+                            score -= 50   # ミストはボクレー以外に回す
+                    elif bench_not_full and card.id == Telepath_Energy:
+                        score += 80   # ベンチに空きあり → テレパスで展開
+                    elif not bench_not_full and card.id == Mist_Energy:
+                        score += 80   # ベンチ満杯 → ミストで純粋エネ付与
             else:
                 score = 3000
         elif o.type == OptionType.EVOLVE:
