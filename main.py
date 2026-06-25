@@ -131,16 +131,21 @@ def agent(obs_dict: dict) -> list[int]:
     for c in me.discard:
         dc[c.id] += 1
 
+    # アクティブポケモンがDragapult exかどうか
+    active_is_dragapult = bool(me.active and me.active[0] and me.active[0].id == Dragapult_ex)
+    bench_has_dragapult = any(p and p.id == Dragapult_ex for p in me.bench)
+
     # ── メインフェーズ 攻撃プランニング ──────────────────────────────
     if ctx == SelectContext.MAIN:
         my_row = [me.active[0]] + list(me.bench)
         op_row = [op.active[0]] + list(op.bench)
 
-        can_sw    = any(o.type == OptionType.RETREAT or
-                        (o.type == OptionType.PLAY and me.hand[o.index].id == 1123)
-                        for o in sel.option)
-        can_op_sw = any(o.type == OptionType.PLAY and me.hand[o.index].id == Boss_Orders
-                        for o in sel.option)
+        # [FIX1] Switchカードはデッキに無いのでRETREATのみ確認
+        can_sw    = any(o.type == OptionType.RETREAT for o in sel.option)
+        can_op_sw = any(
+            o.type == OptionType.PLAY and me.hand[o.index].id == Boss_Orders
+            for o in sel.option if o.type == OptionType.PLAY
+        )
 
         best = -1
         for i, mp in enumerate(my_row):
@@ -150,7 +155,6 @@ def agent(obs_dict: dict) -> list[int]:
             crystal = _has_crystal(mp)
             ec      = len(mp.energies)
 
-            # (req, base_dmg): [(Jet Headbutt), (Phantom Dive)]
             for aidx, (req, bdmg) in enumerate([(1, 70), (1 if crystal else 2, 200)]):
                 avail  = ec
                 need_e = False
@@ -172,6 +176,7 @@ def agent(obs_dict: dict) -> list[int]:
                     if not opp: continue
                     if j > 0 and not can_op_sw: continue
 
+                    # [FIX3] ウィークネス込みのダメージでremain_hpを計算
                     dmg = bdmg
                     od  = card_tbl[opp.id]
                     if od.weakness == EnergyType.DRAGON:
@@ -194,7 +199,7 @@ def agent(obs_dict: dict) -> list[int]:
                         _plan.attacker    = i
                         _plan.target      = j
                         _plan.attack_idx  = aidx
-                        _plan.remain_hp   = opp.hp - bdmg
+                        _plan.remain_hp   = opp.hp - dmg  # [FIX3] ウィークネス反映
                         _plan.need_energy = need_e
                         _plan.need_crystal = need_cr
 
@@ -217,17 +222,23 @@ def agent(obs_dict: dict) -> list[int]:
 
             if ctx in (SelectContext.SWITCH, SelectContext.TO_ACTIVE):
                 if o.playerIndex == mi:
+                    # [FIX7] Dragapult exへの入れ替えスコアを大幅に引き上げ
                     if card.id == Dragapult_ex:
-                        s = 100 + ec * 20
+                        s = 5000 + ec * 100
                     elif card.id == Drakloak:
-                        s = 20
+                        s = 500
+                    else:
+                        s = 50
                     if o.area == AreaType.BENCH and o.index + 1 == _plan.attacker:
-                        s += 200
+                        s += 3000
                 else:
                     if o.area == AreaType.BENCH and o.index + 1 == _plan.target:
-                        s += 200
+                        s += 3000
+                    else:
+                        s = 100
 
-            elif ctx in (SelectContext.SETUP_ACTIVE_POKEMON, SelectContext.SETUP_BENCH_POKEMON):
+            elif ctx in (SelectContext.SETUP_ACTIVE_POKEMON, SelectContext.SETUP_BENCH_POKEMON,
+                         SelectContext.TO_BENCH):  # [FIX2] TO_BENCHを追加
                 s = {Dreepy: 30, Hoothoot: 20, Farfetchd: 15}.get(card.id, 5) \
                     if isinstance(card, Pokemon) else 5
 
@@ -238,21 +249,22 @@ def agent(obs_dict: dict) -> list[int]:
                           Noctowl_id: 30, Hoothoot: 25, Farfetchd: 15}.get(card.id, 5)
                 else:
                     s += {Spark_Crystal: 70, Rare_Candy: 60, Heros_Cape: 50,
-                          Tera_Orb: 45, Boss_Orders: 40, Night_Stretcher: 30,
-                          Fire_E: 30, Psychic_E: 30}.get(card.id, 10)
+                          Tera_Orb: 45, Boss_Orders: 40, Night_Stretcher: 35,
+                          Crispin: 35, Fire_E: 30, Psychic_E: 30}.get(card.id, 10)
 
             elif ctx == SelectContext.DISCARD:
-                # 高スコア = 捨てやすい
+                # [FIX4] 高スコア=捨てやすい。どうぐ・サポーターを保護
                 if isinstance(card, Pokemon):
                     s = 0
-                elif card.id in (Spark_Crystal, Rare_Candy, Tera_Orb, Boss_Orders):
-                    s = 5
+                elif card.id in (Spark_Crystal, Rare_Candy, Tera_Orb, Heros_Cape,
+                                 Night_Stretcher, Crispin, Boss_Orders, Brocks_Scout):
+                    s = 5   # 重要カードは最後まで温存
+                elif card.id in (Lillie_Det, Carmine):
+                    s = 10 if hc[card.id] <= 1 else 40
                 elif card.id in ENERGY_IDS:
                     s = 20
-                elif card.id in (Carmine, Lillie_Det) and hc[card.id] > 1:
-                    s = 40
                 else:
-                    s = 30
+                    s = 30  # その他トレーナーズ
 
             elif ctx == SelectContext.ATTACH_FROM:
                 if card.id == Dragapult_ex:
@@ -282,10 +294,6 @@ def agent(obs_dict: dict) -> list[int]:
                     s = 12000
                 elif card.id == Rare_Candy:
                     s = 11000 if (fc[Dreepy] >= 1 and hc[Dragapult_ex] >= 1) else -1
-                elif card.id == Spark_Crystal:
-                    s = 10000 if fc[Dragapult_ex] >= 1 else 5000
-                elif card.id == Heros_Cape:
-                    s = 9000 if fc[Dragapult_ex] >= 1 else 3000
                 elif card.id == Night_Stretcher:
                     s = 7000
                 elif card.id == Air_Balloon:
@@ -311,6 +319,7 @@ def agent(obs_dict: dict) -> list[int]:
                     s = 2000
 
         elif o.type == OptionType.ATTACH:
+            # ポケモンどうぐ・エネルギーはATTACHとして来る
             card = _get(obs, AreaType.HAND, o.index, mi)
             poke = _get(obs, o.inPlayArea, o.inPlayIndex, mi)
             if poke is None:
@@ -323,6 +332,7 @@ def agent(obs_dict: dict) -> list[int]:
             elif card.id == Air_Balloon:
                 s = 3000
             else:
+                # エネルギー付与
                 if poke.id == Dragapult_ex:
                     s = 9000 - len(poke.energies) * 500
                     att = 0 if o.inPlayArea == AreaType.ACTIVE else 1 + o.inPlayIndex
@@ -341,7 +351,13 @@ def agent(obs_dict: dict) -> list[int]:
             s = 20000
 
         elif o.type == OptionType.RETREAT:
-            s = 2000 if _plan.attacker >= 1 else -1
+            # [FIX6] アクティブがDragapult ex以外でベンチにDragapult exがいる場合も入れ替え
+            if _plan.attacker >= 1:
+                s = 2000
+            elif not active_is_dragapult and bench_has_dragapult:
+                s = 1500
+            else:
+                s = -1
 
         elif o.type == OptionType.ATTACK:
             atk = atk_tbl.get(o.attackId)
@@ -349,9 +365,12 @@ def agent(obs_dict: dict) -> list[int]:
             if atk and atk.damage >= 150:   # Phantom Dive
                 s += 500
 
-        # OptionType.END は score=0 のままターン最後の手段として残す
+        # OptionType.END は score=0 のまま
 
         scores.append(s)
 
-    desc = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
-    return desc[:sel.maxCount]
+    # [FIX5] 有効なオプション(score>=0)を優先し、全て負の場合のみ負スコアから選ぶ
+    desc  = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+    valid = [i for i in desc if scores[i] >= 0]
+    result = valid if valid else desc
+    return result[:sel.maxCount]
