@@ -997,7 +997,8 @@ def _agent_impl(obs_dict: dict) -> list[int]:
             else:
                 score = play_trainer_score(card.id, my_state, op_state, my_prize, is_early_game,
                                            bench_is_full, field_counts, hand_counts, stadium_id, can_attack,
-                                           want_cramorant or want_clefairy)
+                                           want_cramorant or want_clefairy,
+                                           bench_trev_ready, active_pk)
         elif o.type == OptionType.ATTACH:
             card = get_card(obs, AreaType.HAND, o.index, my_index)
             pokemon = get_card(obs, o.inPlayArea, o.inPlayIndex, my_index)
@@ -1189,7 +1190,7 @@ def discard_priority(card_id: int, field_counts, hand_counts,
 
 def play_trainer_score(card_id, my_state, op_state, my_prize, is_early_game,
                        bench_is_full, field_counts, hand_counts, stadium_id, can_attack,
-                       want_cramorant=False) -> int:
+                       want_cramorant=False, bench_trev_ready=False, active_pk=None) -> int:
     have_snorlax = field_counts[Hop_Snorlax] >= 1
     if card_id == Hop_Bag:
         # 基本ホップを2体ベンチ展開。序盤最優先
@@ -1224,6 +1225,10 @@ def play_trainer_score(card_id, my_state, op_state, my_prize, is_early_game,
             return 9000   # ウッウを前に出して きまぐれスピットを撃つ
         if plan.attacker >= 1:
             return 4000
+        if (bench_trev_ready
+                and active_pk is not None
+                and active_pk.id not in (Hop_Trevenant, Hop_Dubwool)):
+            return 2200   # REATREATと同条件: ベンチのオーロットを前に出す
         return 500
     if card_id == Secret_Box:
         return 1500
